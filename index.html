@@ -1,0 +1,51 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    {{range .Data}}
+    <h1><span></span>{{.Group}}</h1>
+    <div>
+        <table>
+            <thead>
+                <tr role="row">
+                    <th>
+                        <div>Метод</div>
+                    </th>
+                    <th>
+                        <div>Путь</div>
+                    </th>
+                    <th>
+                        <div>Описание</div>
+                    </th>
+                    <th>
+                        <div>Требуется JWT token?</div>
+                    </th>
+                    <th>
+                        <div>Требуемые разрешения</div>
+                    </th>
+                    <th>
+                        <div>Примечание</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody aria-live="polite" aria-relevant="all">
+                {{range .Methods}}
+                <tr role="row">
+                    <td colspan="1" class="confluenceTd">{{.MethodName}}</td>
+                    <td colspan="1" class="confluenceTd">{{.Path}}</td>
+                    <td colspan="1" class="confluenceTd">{{.Summary}}</td>
+                    <td colspan="1" class="confluenceTd">{{.IsJWT}}</td>
+                    <td colspan="1" class="confluenceTd">{{.Action}}</td>
+                    <td colspan="1" class="confluenceTd">{{.Description}}</td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+    {{end}}
+</body>
+
+</html>
