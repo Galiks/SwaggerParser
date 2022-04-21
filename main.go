@@ -3,7 +3,12 @@ package main
 import (
 	"SwaggerParser/converter"
 	"SwaggerParser/models"
+	"flag"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -11,29 +16,59 @@ import (
 func main() {
 
 	var (
-		methods     map[string][]models.Method = make(map[string][]models.Method)
-		dataSwagger []models.Swagger
+		document *openapi3.T
+		err      error
 	)
 
-	// swaggerUrl := "http://10.250.232.104:8001/swagger/doc.json"
-	// resp, err := http.Get(swaggerUrl)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// if resp.StatusCode != 200 {
-	// 	err := fmt.Errorf(resp.Status)
-	// 	panic(err)
-	// }
-	// defer resp.Body.Close()
+	url := flag.String("url", "", "url to doc.json")
+	path := flag.String("path", "", "path to doc.json")
+	flag.Parse()
 
-	// respBytes, err := io.ReadAll(resp.Body)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	document, err := openapi3.NewLoader().LoadFromFile("doc.json") //LoadFromData(respBytes)
-	if err != nil {
+	if *url != "" {
+		resp, err := http.Get(*url)
+		if err != nil {
+			panic(err)
+		}
+		if resp.StatusCode != 200 {
+			err := fmt.Errorf(resp.Status)
+			panic(err)
+		}
+		defer resp.Body.Close()
+
+		respBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		document, err = openapi3.NewLoader().LoadFromData(respBytes)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if *path != "" {
+		document, err = openapi3.NewLoader().LoadFromFile(*path)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if path == nil && url == nil {
+		log.Println("Args is empty")
+		os.Exit(1)
+	}
+
+	if err = createHTML(document); err != nil {
 		panic(err)
 	}
+
+}
+
+func createHTML(document *openapi3.T) error {
+	var (
+		methods     map[string][]models.Method = make(map[string][]models.Method)
+		dataSwagger []models.Swagger
+		err         error
+	)
 	for key, value := range document.Paths {
 		method := new(models.Method)
 		method.Path = key
@@ -44,7 +79,6 @@ func main() {
 			method.Summary = value.Get.Summary
 			method.MethodName = "GET"
 			group = value.Get.Tags[0]
-			fmt.Printf("value.Get.Security: %+v\n", value.Get.Security)
 			if value.Get.Security != nil {
 				method.IsJWT = "Да"
 			} else {
@@ -55,7 +89,6 @@ func main() {
 			method.Summary = value.Post.Summary
 			method.MethodName = "POST"
 			group = value.Post.Tags[0]
-			fmt.Printf("value.Post.Security: %+v\n", value.Post.Security)
 			if value.Post.Security != nil {
 				method.IsJWT = "Да"
 			} else {
@@ -66,7 +99,6 @@ func main() {
 			method.Summary = value.Put.Summary
 			method.MethodName = "PUT"
 			group = value.Put.Tags[0]
-			fmt.Printf("value.Put.Security: %+v\n", value.Put.Security)
 			if value.Put.Security != nil {
 				method.IsJWT = "Да"
 			} else {
@@ -77,7 +109,6 @@ func main() {
 			method.Summary = value.Delete.Summary
 			method.MethodName = "DELETE"
 			group = value.Delete.Tags[0]
-			fmt.Printf("value.Delete.Security: %+v\n", value.Delete.Security)
 			if value.Delete.Security != nil {
 				method.IsJWT = "Да"
 			} else {
@@ -101,10 +132,11 @@ func main() {
 	}
 	err = parser.ParseTemplate("index.html", template)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	_, err = parser.GeneratePDF()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
