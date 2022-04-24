@@ -52,7 +52,7 @@ func main() {
 		}
 	}
 
-	if path == nil && url == nil {
+	if *path == "" && *url == "" {
 		log.Println("Args is empty")
 		os.Exit(1)
 	}
@@ -134,9 +134,10 @@ func createHTML(document *openapi3.T) error {
 	if err != nil {
 		return err
 	}
-	_, err = parser.GeneratePDF()
+	_, filename, err := parser.GeneratePDF()
 	if err != nil {
 		return err
 	}
+	fmt.Printf("filename: %v\n", filename)
 	return nil
 }

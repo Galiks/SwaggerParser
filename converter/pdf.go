@@ -55,34 +55,33 @@ func (r *RequestPdf) ParseTemplate(templateFileName string, data interface{}) er
 }
 
 //generate pdf function
-func (r *RequestPdf) GeneratePDF() ([]byte, error) {
+func (r *RequestPdf) GeneratePDF() ([]byte, string, error) {
 	t := time.Now().Unix()
 	// write whole the body
 
 	if _, err := os.Stat("cloneTemplate/"); os.IsNotExist(err) {
 		err := os.Mkdir("cloneTemplate/", 0777)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	}
 	fileName := "cloneTemplate/" + strconv.FormatInt(int64(t), 10) + ".html"
 	err := ioutil.WriteFile(fileName, []byte(r.body), 0644)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	f, err := os.Open(fileName)
 	if f != nil {
 		defer f.Close()
-		// defer os.Remove(fileName)
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	pdfg, err := wkhtmltopdf.NewPDFGenerator()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	pdfg.AddPage(wkhtmltopdf.NewPageReader(f))
@@ -93,12 +92,10 @@ func (r *RequestPdf) GeneratePDF() ([]byte, error) {
 
 	err = pdfg.Create()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	f.Close()
-
-	return pdfg.Bytes(), nil
+	return pdfg.Bytes(), f.Name(), nil
 }
 
 // GetTextLength возвращает длину строки
