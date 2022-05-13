@@ -9,8 +9,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+)
+
+var (
+	keyWordForAction = "permissions:"
 )
 
 func main() {
@@ -63,6 +68,35 @@ func main() {
 
 }
 
+func getActionFromDescription(description string) string {
+	if description == "" {
+		return ""
+	}
+	splitDescription := strings.Split(description, "\n")
+	for _, desc := range splitDescription {
+		if strings.Contains(desc, keyWordForAction) {
+			return strings.TrimPrefix(desc, keyWordForAction)
+		}
+	}
+	return ""
+}
+
+func getDescription(description string) string {
+	var (
+		result string = ""
+	)
+	if description == "" {
+		return result
+	}
+	splitDescription := strings.Split(description, "\n")
+	for _, desc := range splitDescription {
+		if !strings.Contains(desc, keyWordForAction) {
+			result += desc
+		}
+	}
+	return result
+}
+
 func createHTML(document *openapi3.T) error {
 	var (
 		methods     map[string][]models.Method = make(map[string][]models.Method)
@@ -75,45 +109,33 @@ func createHTML(document *openapi3.T) error {
 		var group string = ""
 
 		if value.Get != nil {
-			method.Description = value.Get.Description
+			method.Action = getActionFromDescription(value.Get.Description)
+			method.Description = getDescription(value.Get.Description)
 			method.Summary = value.Get.Summary
 			method.MethodName = "GET"
 			group = value.Get.Tags[0]
-			if value.Get.Security != nil {
-				method.IsJWT = "Да"
-			} else {
-				method.IsJWT = "Нет"
-			}
+			setSecurity(value.Get.Security, method)
 		} else if value.Post != nil {
-			method.Description = value.Post.Description
+			method.Action = getActionFromDescription(value.Post.Description)
+			method.Description = getDescription(value.Post.Description)
 			method.Summary = value.Post.Summary
 			method.MethodName = "POST"
 			group = value.Post.Tags[0]
-			if value.Post.Security != nil {
-				method.IsJWT = "Да"
-			} else {
-				method.IsJWT = "Нет"
-			}
+			setSecurity(value.Post.Security, method)
 		} else if value.Put != nil {
-			method.Description = value.Put.Description
+			method.Action = getActionFromDescription(value.Put.Description)
+			method.Description = getDescription(value.Put.Description)
 			method.Summary = value.Put.Summary
 			method.MethodName = "PUT"
 			group = value.Put.Tags[0]
-			if value.Put.Security != nil {
-				method.IsJWT = "Да"
-			} else {
-				method.IsJWT = "Нет"
-			}
+			setSecurity(value.Put.Security, method)
 		} else if value.Delete != nil {
-			method.Description = value.Delete.Description
+			method.Action = getActionFromDescription(value.Delete.Description)
+			method.Description = getDescription(value.Delete.Description)
 			method.Summary = value.Delete.Summary
 			method.MethodName = "DELETE"
 			group = value.Delete.Tags[0]
-			if value.Delete.Security != nil {
-				method.IsJWT = "Да"
-			} else {
-				method.IsJWT = "Нет"
-			}
+			setSecurity(value.Delete.Security, method)
 		}
 
 		methods[group] = append(methods[group], *method)
@@ -140,4 +162,12 @@ func createHTML(document *openapi3.T) error {
 	}
 	fmt.Printf("filename: %v\n", filename)
 	return nil
+}
+
+func setSecurity(security *openapi3.SecurityRequirements, method *models.Method) {
+	if security != nil {
+		method.IsJWT = "Да"
+	} else {
+		method.IsJWT = "Нет"
+	}
 }
